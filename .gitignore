@@ -42,5 +42,5 @@ next-env.d.ts
 
 
 #files
-.env.local
+env.local
 .env

@@ -41,6 +41,7 @@ export default function Home() {
 
       Pi.init({
         version: "2.0",
+        sandbox: true,
       });
 
       alert("Pi initialized");
