@@ -33,6 +33,7 @@ export default function Home() {
         // Initialize Pi SDK
         Pi.init({
           version: "2.0",
+          sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
         });
 
         setStatus("Initializing SDK...");
