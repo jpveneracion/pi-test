@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetch } from 'undici';
+import https from 'https';
 
 export async function POST(request) {
   try {
@@ -28,6 +28,11 @@ export async function POST(request) {
     const fullUrl = `${piApiUrl}/${paymentId}/approve`;
     console.log("Calling Pi API:", fullUrl);
 
+    // Create HTTPS agent that ignores SSL errors for sandbox
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false" ? false : true,
+    });
+
     // Call Pi Network API to approve the payment (ignoring SSL errors for sandbox)
     const response = await fetch(fullUrl, {
       method: "POST",
@@ -35,12 +40,8 @@ export async function POST(request) {
         "Content-Type": "application/json",
         "Authorization": `Key ${process.env.PI_API_KEY}`,
       },
-      // Ignore SSL certificate errors for sandbox
-      dispatcher: new (await import('undici')).Agent({
-        connect: {
-          rejectUnauthorized: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false" ? false : true,
-        },
-      }),
+      // @ts-ignore - Vercel supports agent option
+      agent: httpsAgent,
     });
 
     if (!response.ok) {
