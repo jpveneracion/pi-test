@@ -44,9 +44,10 @@ export default function Home() {
       });
 
       alert("Pi initialized");
+      
+      alert("Origin: " + window.location.origin);
 
       try {
-        alert("Origin: " + window.location.origin);
         const auth = await Pi.authenticate(
           ["username", "payments"],
           onIncompletePaymentFound
