@@ -36,7 +36,12 @@ export default function Home() {
           sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
         });
 
+        setStatus("Initializing SDK...");
         setPiReady(true);
+
+        // Wait for SDK to be fully initialized before authenticating
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         setStatus("Authenticating...");
 
         // Authenticate user
@@ -50,8 +55,16 @@ export default function Home() {
         setUser(auth.user);
         setStatus("Ready");
       } catch (error) {
-        setStatus("Connection failed. Please use Pi Network app.");
+        const errorMessage = error.message || "Unknown error";
         console.error("Pi SDK error:", error);
+
+        if (errorMessage.includes("not initialized")) {
+          setStatus("SDK initialization failed. Please use Pi Network app.");
+        } else if (errorMessage.includes("User denied")) {
+          setStatus("Authentication cancelled by user.");
+        } else {
+          setStatus(`Connection failed: ${errorMessage}. Please use Pi Network app.`);
+        }
       }
     };
 
@@ -145,17 +158,21 @@ export default function Home() {
         style={{
           marginTop: "2rem",
           padding: "1rem",
-          backgroundColor: "#f8f9fa",
+          backgroundColor: "#fff3cd",
+          border: "1px solid #ffc107",
           borderRadius: "8px",
           fontSize: "0.9rem",
         }}
       >
-        <h3 style={{ marginBottom: "0.5rem" }}>ℹ️ Information</h3>
+        <h3 style={{ marginBottom: "0.5rem" }}>⚠️ Important</h3>
         <p style={{ marginBottom: "0.5rem" }}>
-          This app uses the Pi Network SDK for payments.
+          This Pi Network app must be accessed through the Pi Network app environment to work properly.
+        </p>
+        <p style={{ marginBottom: "0.5rem", fontSize: "0.85rem" }}>
+          <strong>Testing in regular browser will fail</strong> - this is expected behavior!
         </p>
         <p style={{ color: "#666", fontSize: "0.8rem" }}>
-          For best results, access through Pi Network app environment.
+          Access via: <code>https://sandbox.minepi.com/mobile-app-ui/app/your-app-name</code>
         </p>
       </div>
     </main>
