@@ -45,13 +45,6 @@ export async function POST(request) {
         },
       }),
     });
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Key ${process.env.PI_API_KEY}`,
-      },
-      body: JSON.stringify({ txid }),
-    });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -70,8 +63,15 @@ export async function POST(request) {
 
   } catch (error) {
     console.error("Payment completion error:", error);
+    console.error("Error cause:", error.cause);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: "Internal server error", message: error.message },
+      {
+        error: "Internal server error",
+        message: error.message,
+        cause: error.cause?.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
