@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import https from 'https';
 
+// Disable SSL verification for sandbox environment only
+if (process.env.NEXT_PUBLIC_PI_SANDBOX !== "false") {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 export async function POST(request) {
   try {
     const { paymentId, txid } = await request.json();
@@ -30,12 +35,7 @@ export async function POST(request) {
     console.log("Calling Pi API:", fullUrl);
     console.log("Request body:", JSON.stringify({ txid }));
 
-    // Create HTTPS agent that ignores SSL errors for sandbox
-    const httpsAgent = new https.Agent({
-      rejectUnauthorized: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false" ? false : true,
-    });
-
-    // Call Pi Network API to complete the payment (ignoring SSL errors for sandbox)
+    // Call Pi Network API to complete the payment
     const response = await fetch(fullUrl, {
       method: "POST",
       headers: {
@@ -43,8 +43,6 @@ export async function POST(request) {
         "Authorization": `Key ${process.env.PI_API_KEY}`,
       },
       body: JSON.stringify({ txid }),
-      // @ts-ignore - Vercel supports agent option
-      agent: httpsAgent,
     });
 
     if (!response.ok) {
