@@ -43,11 +43,21 @@ export async function POST(request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Payment approval failed:", errorData);
+      const responseText = await response.text();
+      console.error("Payment approval failed");
       console.error("Response status:", response.status);
+      console.error("Response body:", responseText);
+      console.error("Response headers:", Object.fromEntries(response.headers.entries()));
+
+      let errorData = {};
+      try {
+        errorData = JSON.parse(responseText);
+      } catch (e) {
+        errorData = { raw_response: responseText };
+      }
+
       return NextResponse.json(
-        { error: "Failed to approve payment", details: errorData },
+        { error: "Failed to approve payment", details: errorData, status: response.status },
         { status: response.status }
       );
     }
