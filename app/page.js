@@ -37,6 +37,16 @@ export default function Home() {
         });
 
         setStatus("Initializing SDK...");
+
+        // Check Pi environment and alert
+        const isSandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== "false";
+        console.log("Pi Environment check:");
+        console.log("  - NEXT_PUBLIC_PI_SANDBOX:", process.env.NEXT_PUBLIC_PI_SANDBOX);
+        console.log("  - Is Sandbox:", isSandbox);
+        console.log("  - SDK Version:", "2.0");
+
+        alert(`Pi Environment: ${isSandbox ? "SANDBOX (Test-Pi)" : "PRODUCTION (Real-Pi)"}`);
+
         setPiReady(true);
 
         // Wait for SDK to be fully initialized before authenticating
@@ -80,6 +90,10 @@ export default function Home() {
       alert("Pi Network is not ready. Please try again.");
       return;
     }
+
+    // Check environment before payment
+    const isSandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== "false";
+    console.log("Creating payment in environment:", isSandbox ? "SANDBOX" : "PRODUCTION");
 
     try {
       const paymentData = {
