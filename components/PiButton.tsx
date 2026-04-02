@@ -1,0 +1,31 @@
+"use client";
+import React from 'react';
+import { usePiConnection, usePiPurchase } from 'pi-sdk-react';
+import { PaymentData } from 'pi-sdk-js';
+
+const defaultPaymentData: PaymentData = {
+  amount: 0.01,
+  memo: 'Example Pi Payment',
+  metadata: { productId: 42, description: 'Demo purchase via Pi Network' }
+};
+
+export interface PiButtonProps {
+  paymentData?: PaymentData;
+  onConnected?: () => void;
+  children?: React.ReactNode;
+}
+
+export function PiButton({ paymentData = defaultPaymentData, onConnected, children }: PiButtonProps) {
+  const { connected } = usePiConnection();
+  const purchase = usePiPurchase(paymentData);
+
+  React.useEffect(() => {
+    if (connected && onConnected) onConnected();
+  }, [connected, onConnected]);
+
+  return (
+    <button disabled={!connected} onClick={purchase}>
+      {children || 'Buy with Pi'}
+    </button>
+  );
+}
