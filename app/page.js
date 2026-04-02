@@ -89,14 +89,40 @@ export default function Home() {
       };
 
       const callbacks = {
-        onReadyForServerApproval: (paymentId) => {
+        onReadyForServerApproval: async (paymentId) => {
           console.log("Payment ready for approval:", paymentId);
-          // TODO: Call your backend API to approve payment
+          try {
+            const response = await fetch("/api/approve-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId }),
+            });
+            if (!response.ok) {
+              throw new Error("Failed to approve payment");
+            }
+            console.log("Payment approved successfully");
+          } catch (error) {
+            console.error("Approval error:", error);
+            setStatus("Payment approval failed");
+          }
         },
-        onReadyForServerCompletion: (paymentId, txid) => {
-          console.log("Payment completed:", paymentId, txid);
-          alert("Payment completed successfully!");
-          // TODO: Call your backend API to complete payment
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          console.log("Payment ready for completion:", paymentId, txid);
+          try {
+            const response = await fetch("/api/complete-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paymentId, txid }),
+            });
+            if (!response.ok) {
+              throw new Error("Failed to complete payment");
+            }
+            console.log("Payment completed successfully");
+            alert("Payment completed successfully!");
+          } catch (error) {
+            console.error("Completion error:", error);
+            setStatus("Payment completion failed");
+          }
         },
         onCancel: (paymentId) => {
           console.log("Payment cancelled:", paymentId);
