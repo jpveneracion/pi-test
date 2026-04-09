@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+interface PiUser {
+  username: string;
+  uid: string;
+}
+
 export default function ClaimTest() {
+  const [user, setUser] = useState<PiUser | null>(null);
   const [isPiReady, setIsPiReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("Waiting for Pi SDK...");
@@ -20,15 +26,38 @@ export default function ClaimTest() {
           sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
         });
 
-        // Give it a moment to initialize
+        // Give it a moment to initialize, then authenticate
         setTimeout(() => {
-          setIsPiReady(true);
-          setStatus("Pi SDK ready - You can now claim!");
+          authenticate();
         }, 500);
       }
     }, 100);
 
     return () => clearInterval(waitForPi);
+
+    async function authenticate() {
+      if (!window.Pi) return;
+
+      try {
+        setStatus("Authenticating...");
+
+        const auth = await window.Pi.authenticate(
+          ["username", "payments"], // Request payment scope!
+          (payment: unknown) => {
+            console.log("Incomplete payment found:", payment);
+          }
+        );
+
+        console.log("Authenticated:", auth.user);
+        setUser(auth.user);
+        setIsPiReady(true);
+        setStatus(`Ready - Welcome ${auth.user.username}!`);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        console.error("Auth error:", err);
+        setStatus(`Authentication failed: ${errorMessage}`);
+      }
+    }
   }, []);
 
   const handleClaim = async () => {
@@ -93,6 +122,14 @@ export default function ClaimTest() {
       <div style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#f0f0f0", borderRadius: "5px" }}>
         <p style={{ margin: 0, fontSize: "14px" }}>{status}</p>
       </div>
+
+      {user && (
+        <div style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#e3f2fd", borderRadius: "5px" }}>
+          <p style={{ margin: 0, fontSize: "14px" }}>
+            Logged in as: <strong>{user.username}</strong>
+          </p>
+        </div>
+      )}
 
       <button
         onClick={handleClaim}
