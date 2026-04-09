@@ -102,7 +102,13 @@ export default function ClaimTest() {
       console.log("Claim creation response:", createData);
 
       if (!createResponse.ok) {
-        const errorMsg = `❌ Failed to create claim:\nStatus: ${createResponse.status}\nError: ${createData.error}`;
+        let errorMsg = `❌ Failed to create claim:\nStatus: ${createResponse.status}\nError: ${createData.error}`;
+
+        // Special handling for 503 errors
+        if (createResponse.status === 503) {
+          errorMsg = `❌ Pi Network API is temporarily unavailable (503)\n\nThe Pi Network Sandbox API is currently down.\n\nPlease try again in a few minutes.\n\nThis is a Pi Network infrastructure issue, not a problem with your code.`;
+        }
+
         const detailMsg = createData.details ? `\nDetails: ${JSON.stringify(createData.details, null, 2)}` : '';
         const piError = createData.pi_error ? `\nPi API Error: ${JSON.stringify(createData.pi_error, null, 2)}` : '';
 
