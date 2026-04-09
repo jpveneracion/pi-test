@@ -105,10 +105,9 @@ export default function ClaimTest() {
       // Step 2: Use the paymentId to show payment to user
       setPaymentResult(`✅ Claim created! Waiting for you to accept in wallet...`);
 
+      // For A2U payments, pass the paymentId directly
       await window.Pi.createPayment(
-        {
-          paymentId: paymentId, // Use the paymentId from backend
-        },
+        paymentId,
         {
           onReadyForServerCompletion: async (paymentId: string, txid: string) => {
             console.log("✅ User accepted claim!", paymentId, txid);
