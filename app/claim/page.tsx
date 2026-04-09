@@ -73,6 +73,13 @@ export default function ClaimTest() {
       setPaymentResult("Creating claim payment...");
 
       // Step 1: Call backend to create the A2U payment
+      console.log("Sending claim request:", {
+        amount: "0.01",
+        memo: "Claim Salary Test",
+        uid: user.uid,
+        username: user.username
+      });
+
       const createResponse = await fetch('/api/create-claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,17 +95,31 @@ export default function ClaimTest() {
         }),
       });
 
+      console.log("Create response status:", createResponse.status);
+      console.log("Create response ok:", createResponse.ok);
+
       const createData = await createResponse.json();
       console.log("Claim creation response:", createData);
 
       if (!createResponse.ok) {
-        alert(`❌ Failed to create claim:\n${createData.error}`);
-        setPaymentResult(`❌ Failed to create claim: ${createData.error}`);
+        const errorMsg = `❌ Failed to create claim:\nStatus: ${createResponse.status}\nError: ${createData.error}`;
+        const detailMsg = createData.details ? `\nDetails: ${JSON.stringify(createData.details, null, 2)}` : '';
+        const piError = createData.pi_error ? `\nPi API Error: ${JSON.stringify(createData.pi_error, null, 2)}` : '';
+
+        alert(errorMsg + detailMsg + piError);
+        setPaymentResult(`❌ Failed: ${createData.error}`);
         setIsLoading(false);
         return;
       }
 
       const paymentId = createData.paymentId;
+      if (!paymentId) {
+        alert(`❌ No payment ID returned from backend`);
+        setPaymentResult(`❌ No payment ID received`);
+        setIsLoading(false);
+        return;
+      }
+
       console.log("Claim created with payment ID:", paymentId);
       alert(`✅ Claim created!\n\nPayment ID: ${paymentId}\n\nNow you'll see the wallet popup to accept the payment.`);
 
