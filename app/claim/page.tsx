@@ -87,27 +87,37 @@ export default function ClaimTest() {
         paymentData,
         {
           onReadyForServerApproval: async (paymentId: string) => {
-            alert(`✅ onReadyForServerApproval fired!\n\nPayment ID: ${paymentId}\n\nCalling backend approve endpoint...\n\n💡 Wallet popup should appear NOW!`);
+            console.log("✅ onReadyForServerApproval fired!", paymentId);
+            alert(`✅ Payment created!\n\nPayment ID: ${paymentId}\n\nCalling backend approve endpoint...\n\n💡 Check browser console for detailed logs`);
+
             setPaymentResult(`⏳ Payment created: ${paymentId}. Calling approve endpoint...`);
 
             try {
+              console.log("Calling /api/approve-payment with:", { paymentId });
               const response = await fetch('/api/approve-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ paymentId }),
               });
 
+              console.log("Response status:", response.status);
+              console.log("Response ok:", response.ok);
+
+              const responseData = await response.json();
+              console.log("Response data:", responseData);
+
               if (response.ok) {
-                alert(`✅ Approve endpoint called!\n\nNow check your Pi Browser for wallet popup.`);
+                alert(`✅ Backend approved successfully!\n\nNow check your Pi Browser for wallet popup to approve the payment.`);
                 setPaymentResult(`✅ Backend approved. Waiting for wallet approval...`);
               } else {
-                const error = await response.json();
-                alert(`❌ Approve failed: ${error.error}`);
-                setPaymentResult(`❌ Approve failed: ${error.error}`);
+                console.error("Approval failed:", responseData);
+                alert(`❌ Backend approval failed:\nStatus: ${response.status}\nError: ${responseData.error}\nDetails: ${JSON.stringify(responseData.details || responseData)}`);
+                setPaymentResult(`❌ Approve failed: ${responseData.error}`);
                 setIsLoading(false);
               }
             } catch (error) {
-              alert(`❌ Approve error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              console.error("Approval exception:", error);
+              alert(`❌ Approval error:\n${error instanceof Error ? error.message : 'Unknown error'}\n\nCheck browser console for details`);
               setPaymentResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
               setIsLoading(false);
             }
