@@ -60,8 +60,8 @@ export default function ClaimTest() {
   }, []);
 
   const handleClaim = async () => {
-    if (!window.Pi) {
-      alert("Pi SDK not ready. Please open in Pi Browser.");
+    if (!window.Pi || !user) {
+      alert("Pi SDK not ready or not authenticated. Please open in Pi Browser.");
       return;
     }
 
@@ -69,63 +69,51 @@ export default function ClaimTest() {
     setPaymentResult(null);
 
     try {
-      alert("Creating claim payment...");
+      console.log("Starting A2U claim flow for user:", user.uid);
+      setPaymentResult("Creating claim payment...");
 
-      const paymentData = {
-        amount: "0.0100000", // Must be string with 7 decimals (like test-payment)
-        memo: "Claim Salary Test",
-        metadata: {
-          transaction_id: `claim_${Date.now()}`,
-          user_id: "claim_user"
-        }
-      };
+      // Step 1: Call backend to create the A2U payment
+      const createResponse = await fetch('/api/create-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: "0.01",
+          memo: "Claim Salary Test",
+          uid: user.uid, // Target user's UID
+          metadata: {
+            transaction_id: `claim_${Date.now()}`,
+            user_id: user.uid,
+            username: user.username
+          }
+        }),
+      });
 
-      alert(`Creating payment with:\nAmount: ${paymentData.amount}\nMemo: ${paymentData.memo}\n\nCheck if wallet popup appears!`);
+      const createData = await createResponse.json();
+      console.log("Claim creation response:", createData);
 
-      // Step 1: Create payment with callbacks (exactly like test-payment)
+      if (!createResponse.ok) {
+        alert(`❌ Failed to create claim:\n${createData.error}`);
+        setPaymentResult(`❌ Failed to create claim: ${createData.error}`);
+        setIsLoading(false);
+        return;
+      }
+
+      const paymentId = createData.paymentId;
+      console.log("Claim created with payment ID:", paymentId);
+      alert(`✅ Claim created!\n\nPayment ID: ${paymentId}\n\nNow you'll see the wallet popup to accept the payment.`);
+
+      // Step 2: Use the paymentId to show payment to user
+      setPaymentResult(`✅ Claim created! Waiting for you to accept in wallet...`);
+
       await window.Pi.createPayment(
-        paymentData,
         {
-          onReadyForServerApproval: async (paymentId: string) => {
-            console.log("✅ onReadyForServerApproval fired!", paymentId);
-            alert(`✅ Payment created!\n\nPayment ID: ${paymentId}\n\nCalling backend approve endpoint...\n\n💡 Check browser console for detailed logs`);
-
-            setPaymentResult(`⏳ Payment created: ${paymentId}. Calling approve endpoint...`);
-
-            try {
-              console.log("Calling /api/approve-payment with:", { paymentId });
-              const response = await fetch('/api/approve-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentId }),
-              });
-
-              console.log("Response status:", response.status);
-              console.log("Response ok:", response.ok);
-
-              const responseData = await response.json();
-              console.log("Response data:", responseData);
-
-              if (response.ok) {
-                alert(`✅ Backend approved successfully!\n\nNow check your Pi Browser for wallet popup to approve the payment.`);
-                setPaymentResult(`✅ Backend approved. Waiting for wallet approval...`);
-              } else {
-                console.error("Approval failed:", responseData);
-                alert(`❌ Backend approval failed:\nStatus: ${response.status}\nError: ${responseData.error}\nDetails: ${JSON.stringify(responseData.details || responseData)}`);
-                setPaymentResult(`❌ Approve failed: ${responseData.error}`);
-                setIsLoading(false);
-              }
-            } catch (error) {
-              console.error("Approval exception:", error);
-              alert(`❌ Approval error:\n${error instanceof Error ? error.message : 'Unknown error'}\n\nCheck browser console for details`);
-              setPaymentResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              setIsLoading(false);
-            }
-          },
-
+          paymentId: paymentId, // Use the paymentId from backend
+        },
+        {
           onReadyForServerCompletion: async (paymentId: string, txid: string) => {
-            alert(`✅ Payment approved in wallet!\n\nPayment ID: ${paymentId}\nTXID: ${txid}\n\nCalling complete endpoint...`);
-            setPaymentResult(`✅ Wallet approved! Calling complete endpoint...`);
+            console.log("✅ User accepted claim!", paymentId, txid);
+            alert(`✅ You accepted the claim!\n\nPayment ID: ${paymentId}\nTXID: ${txid}\n\nCompleting payment...`);
+            setPaymentResult(`✅ Claim accepted! Completing payment...`);
 
             try {
               const response = await fetch('/api/complete-payment', {
@@ -136,8 +124,8 @@ export default function ClaimTest() {
 
               if (response.ok) {
                 const result = await response.json();
-                alert(`✅ Claim payment successful!\n\nPayment completed!`);
-                setPaymentResult(`✅ Payment completed!`);
+                alert(`✅ Claim payment completed successfully!\n\nPayment ID: ${paymentId}\nStatus: Completed`);
+                setPaymentResult(`✅ Claim completed! Status: Completed`);
               } else {
                 const error = await response.json();
                 alert(`❌ Complete failed: ${error.error}`);
@@ -151,15 +139,17 @@ export default function ClaimTest() {
             }
           },
 
-          onCancel: async (paymentId: string) => {
-            alert(`❌ Payment cancelled: ${paymentId}`);
-            setPaymentResult(`❌ Payment cancelled`);
+          onCancel: (paymentId: string) => {
+            console.log("❌ User rejected claim:", paymentId);
+            alert(`❌ Claim cancelled: ${paymentId}`);
+            setPaymentResult(`❌ Claim cancelled`);
             setIsLoading(false);
           },
 
-          onError: async (error: unknown) => {
+          onError: (error: unknown) => {
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            alert(`❌ Payment error: ${errorMsg}`);
+            console.error("❌ Claim error:", error);
+            alert(`❌ Claim error: ${errorMsg}`);
             setPaymentResult(`❌ Error: ${errorMsg}`);
             setIsLoading(false);
           }
@@ -167,7 +157,8 @@ export default function ClaimTest() {
       );
 
     } catch (error) {
-      alert(`Payment Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Claim flow error:", error);
+      alert(`Claim Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setPaymentResult(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsLoading(false);
     }
