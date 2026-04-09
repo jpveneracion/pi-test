@@ -93,7 +93,7 @@ export default function Home() {
       </h1>
 
       <QRCodeCanvas
-        value="pi://wallet.pinet.com/pay-request?publicKey=GDN7QKNY3ZSCEYTGVBITK6G3I4ZH3P7RYS3UKFVKXQAWHQM4OEHIWVE3&name=%40jpx3m"
+        value="https://wallet.pinet.com/pay-request?publicKey=GDN7QKNY3ZSCEYTGVBITK6G3I4ZH3P7RYS3UKFVKXQAWHQM4OEHIWVE3&name=%40jpx3m"
         size={256}
         level="H"
       />
