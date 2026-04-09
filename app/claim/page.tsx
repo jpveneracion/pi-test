@@ -94,7 +94,7 @@ export default function ClaimTest() {
         console.log("CANCELLED:", paymentId);
       },
 
-      onError: (err: Error) => {
+      onError: (err: unknown) => {
         console.error("ERROR:", err);
       },
     };
