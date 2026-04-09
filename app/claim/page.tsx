@@ -80,8 +80,37 @@ export default function ClaimTest() {
       const callbacks = {
         onReadyForServerApproval: async (paymentId: string) => {
           console.log("APPROVAL NEEDED:", paymentId);
-          setStatus(`Payment created: ${paymentId}`);
-          // TEMP: no backend yet
+          setStatus(`Payment created: ${paymentId}. Calling backend...`);
+
+          try {
+            const response = await fetch('/api/payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: paymentId,
+                amount: 0.01,
+                memo: "Claim Salary Test",
+                type: "claim",
+                action: "approve",
+                txid: ""
+              }),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log("✅ Backend approved:", result);
+              setStatus("✅ Backend approved. Waiting for wallet approval...");
+            } else {
+              const error = await response.json();
+              console.error(`❌ Approve failed: ${error.error}`);
+              setStatus(`❌ Approve failed: ${error.error}`);
+              setIsLoading(false);
+            }
+          } catch (error) {
+            console.error(`❌ Approve error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setIsLoading(false);
+          }
         },
 
         onReadyForServerCompletion: async (
@@ -89,8 +118,37 @@ export default function ClaimTest() {
           txid: string
         ) => {
           console.log("COMPLETED:", paymentId, txid);
-          setStatus(`Claim completed! TXID: ${txid}`);
-          setIsLoading(false);
+          setStatus("✅ Wallet approved! Calling complete endpoint...");
+
+          try {
+            const response = await fetch('/api/payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                paymentId: paymentId,
+                amount: 0.01,
+                memo: "Claim Salary Test",
+                type: "claim",
+                action: "complete",
+                txid: txid
+              }),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log(`✅ Claim completed! Payment ID: ${result.payment?.id}`);
+              setStatus(`✅ Claim completed! Status: ${result.payment?.status}`);
+            } else {
+              const error = await response.json();
+              console.error(`❌ Complete failed: ${error.error}`);
+              setStatus(`❌ Complete failed: ${error.error}`);
+            }
+          } catch (error) {
+            console.error(`❌ Complete error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          } finally {
+            setIsLoading(false);
+          }
         },
 
         onCancel: (paymentId: string) => {
@@ -100,8 +158,9 @@ export default function ClaimTest() {
         },
 
         onError: (err: unknown) => {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
           console.error("ERROR:", err);
-          setStatus("Claim failed");
+          setStatus(`❌ Payment error: ${errorMsg}`);
           setIsLoading(false);
         },
       };
