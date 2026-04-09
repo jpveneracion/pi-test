@@ -131,10 +131,11 @@ export default function DashboardPage() {
             >
               💰 Deposit Funds
             </a>
-            <a href="/claim">
-            <button className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
+            <a
+              href="/claim"
+              className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-6 rounded-lg transition-colors text-center"
+            >
               Claim
-            </button>
             </a>
             <button className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
               Create Payment
