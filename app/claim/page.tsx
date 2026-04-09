@@ -35,8 +35,7 @@ export default function ClaimTest() {
       setStatus("Initializing SDK...");
 
       Pi.init({
-        version: "2.0",
-        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
+        version: "2.0"
       });
 
       setStatus("Authenticating...");
