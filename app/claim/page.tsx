@@ -19,8 +19,17 @@ export default function ClaimTest() {
     const waitForPi = setInterval(() => {
       if (typeof window !== "undefined" && window.Pi) {
         clearInterval(waitForPi);
-        setAuthStatus("Pi SDK ready - Authenticating...");
-        authenticate();
+        setAuthStatus("Initializing Pi SDK...");
+
+        // Initialize the Pi SDK first
+        window.Pi.init({
+          version: "2.0",
+        });
+
+        // Give it a moment to initialize, then authenticate
+        setTimeout(() => {
+          authenticate();
+        }, 500);
       }
     }, 100);
 
@@ -30,6 +39,7 @@ export default function ClaimTest() {
       if (!window.Pi) return;
 
       try {
+        setAuthStatus("Authenticating...");
         const auth = await window.Pi.authenticate(
           ["username", "payments"], // Request payment scope!
           (payment: unknown) => {
