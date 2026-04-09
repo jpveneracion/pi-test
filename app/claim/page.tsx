@@ -2,173 +2,123 @@
 
 import { useEffect, useState } from "react";
 
-interface PiUser {
-  username: string;
-  uid: string;
-}
-
 export default function ClaimTest() {
-  const [user, setUser] = useState<PiUser | null>(null);
   const [isPiReady, setIsPiReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState("Waiting for Pi SDK...");
+  const [paymentResult, setPaymentResult] = useState<string | null>(null);
 
   useEffect(() => {
-    // Wait for Pi SDK to be available
+    // Wait for Pi SDK to be available (exactly like test-payment page)
     const waitForPi = setInterval(() => {
       if (typeof window !== "undefined" && window.Pi) {
+        setIsPiReady(true);
         clearInterval(waitForPi);
-        setStatus("Initializing Pi SDK...");
-
-        // Initialize the Pi SDK
-        window.Pi.init({
-          version: "2.0",
-        });
-
-        // Give it a moment to initialize, then authenticate
-        setTimeout(() => {
-          authenticate();
-        }, 500);
       }
     }, 100);
 
     return () => clearInterval(waitForPi);
-
-    async function authenticate() {
-      if (!window.Pi) return;
-
-      try {
-        setStatus("Authenticating...");
-
-        const auth = await window.Pi.authenticate(
-          ["username", "payments"], // Request payment scope!
-          (payment: unknown) => {
-            console.log("Incomplete payment found:", payment);
-          }
-        );
-
-        console.log("Authenticated:", auth.user);
-        setUser(auth.user);
-        setIsPiReady(true);
-        setStatus(`Ready - Welcome ${auth.user.username}!`);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
-        console.error("Auth error:", err);
-        setStatus(`Authentication failed: ${errorMessage}`);
-      }
-    }
   }, []);
 
   const handleClaim = async () => {
-    const Pi = window.Pi;
-
-    if (!Pi) {
+    if (!window.Pi) {
       alert("Pi SDK not ready. Please open in Pi Browser.");
       return;
     }
 
     setIsLoading(true);
-    setStatus("Creating claim payment...");
+    setPaymentResult(null);
 
     try {
+      alert("Creating claim payment...");
+
       const paymentData = {
-        amount: "0.01",
+        amount: "0.0100000", // Must be string with 7 decimals (like test-payment)
         memo: "Claim Salary Test",
-        metadata: { type: "claim_test" },
+        metadata: {
+          transaction_id: `claim_${Date.now()}`,
+          user_id: "claim_user"
+        }
       };
 
-      const callbacks = {
-        onReadyForServerApproval: async (paymentId: string) => {
-          console.log("APPROVAL NEEDED:", paymentId);
-          setStatus(`Payment created: ${paymentId}. Calling backend...`);
+      alert(`Creating payment with:\nAmount: ${paymentData.amount}\nMemo: ${paymentData.memo}\n\nCheck if wallet popup appears!`);
 
-          try {
-            const response = await fetch('/api/payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                paymentId: paymentId,
-                amount: 0.01,
-                memo: "Claim Salary Test",
-                type: "claim",
-                action: "approve",
-                txid: ""
-              }),
-            });
+      // Step 1: Create payment with callbacks (exactly like test-payment)
+      await window.Pi.createPayment(
+        paymentData,
+        {
+          onReadyForServerApproval: async (paymentId: string) => {
+            alert(`✅ onReadyForServerApproval fired!\n\nPayment ID: ${paymentId}\n\nCalling backend approve endpoint...\n\n💡 Wallet popup should appear NOW!`);
+            setPaymentResult(`⏳ Payment created: ${paymentId}. Calling approve endpoint...`);
 
-            if (response.ok) {
-              const result = await response.json();
-              console.log("✅ Backend approved:", result);
-              setStatus("✅ Backend approved. Waiting for wallet approval...");
-            } else {
-              const error = await response.json();
-              console.error(`❌ Approve failed: ${error.error}`);
-              setStatus(`❌ Approve failed: ${error.error}`);
+            try {
+              const response = await fetch('/api/approve-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId }),
+              });
+
+              if (response.ok) {
+                alert(`✅ Approve endpoint called!\n\nNow check your Pi Browser for wallet popup.`);
+                setPaymentResult(`✅ Backend approved. Waiting for wallet approval...`);
+              } else {
+                const error = await response.json();
+                alert(`❌ Approve failed: ${error.error}`);
+                setPaymentResult(`❌ Approve failed: ${error.error}`);
+                setIsLoading(false);
+              }
+            } catch (error) {
+              alert(`❌ Approve error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              setPaymentResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
               setIsLoading(false);
             }
-          } catch (error) {
-            console.error(`❌ Approve error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            setIsLoading(false);
-          }
-        },
+          },
 
-        onReadyForServerCompletion: async (
-          paymentId: string,
-          txid: string
-        ) => {
-          console.log("COMPLETED:", paymentId, txid);
-          setStatus("✅ Wallet approved! Calling complete endpoint...");
+          onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+            alert(`✅ Payment approved in wallet!\n\nPayment ID: ${paymentId}\nTXID: ${txid}\n\nCalling complete endpoint...`);
+            setPaymentResult(`✅ Wallet approved! Calling complete endpoint...`);
 
-          try {
-            const response = await fetch('/api/payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                paymentId: paymentId,
-                amount: 0.01,
-                memo: "Claim Salary Test",
-                type: "claim",
-                action: "complete",
-                txid: txid
-              }),
-            });
+            try {
+              const response = await fetch('/api/complete-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId, txid }),
+              });
 
-            if (response.ok) {
-              const result = await response.json();
-              console.log(`✅ Claim completed! Payment ID: ${result.payment?.id}`);
-              setStatus(`✅ Claim completed! Status: ${result.payment?.status}`);
-            } else {
-              const error = await response.json();
-              console.error(`❌ Complete failed: ${error.error}`);
-              setStatus(`❌ Complete failed: ${error.error}`);
+              if (response.ok) {
+                const result = await response.json();
+                alert(`✅ Claim payment successful!\n\nPayment completed!`);
+                setPaymentResult(`✅ Payment completed!`);
+              } else {
+                const error = await response.json();
+                alert(`❌ Complete failed: ${error.error}`);
+                setPaymentResult(`❌ Complete failed: ${error.error}`);
+              }
+            } catch (error) {
+              alert(`❌ Complete error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              setPaymentResult(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            } finally {
+              setIsLoading(false);
             }
-          } catch (error) {
-            console.error(`❌ Complete error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          } finally {
+          },
+
+          onCancel: async (paymentId: string) => {
+            alert(`❌ Payment cancelled: ${paymentId}`);
+            setPaymentResult(`❌ Payment cancelled`);
+            setIsLoading(false);
+          },
+
+          onError: async (error: unknown) => {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            alert(`❌ Payment error: ${errorMsg}`);
+            setPaymentResult(`❌ Error: ${errorMsg}`);
             setIsLoading(false);
           }
-        },
+        }
+      );
 
-        onCancel: (paymentId: string) => {
-          console.log("CANCELLED:", paymentId);
-          setStatus("Claim cancelled");
-          setIsLoading(false);
-        },
-
-        onError: (err: unknown) => {
-          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-          console.error("ERROR:", err);
-          setStatus(`❌ Payment error: ${errorMsg}`);
-          setIsLoading(false);
-        },
-      };
-
-      await Pi.createPayment(paymentData, callbacks);
-    } catch (err) {
-      console.error("Create payment failed:", err);
-      setStatus(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch (error) {
+      alert(`Payment Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setPaymentResult(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsLoading(false);
     }
   };
@@ -176,18 +126,6 @@ export default function ClaimTest() {
   return (
     <div style={{ padding: 20, maxWidth: "600px", margin: "0 auto" }}>
       <h1>🧪 Claim Test</h1>
-
-      <div style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#f0f0f0", borderRadius: "5px" }}>
-        <p style={{ margin: 0, fontSize: "14px" }}>{status}</p>
-      </div>
-
-      {user && (
-        <div style={{ marginBottom: "20px", padding: "10px", backgroundColor: "#e3f2fd", borderRadius: "5px" }}>
-          <p style={{ margin: 0, fontSize: "14px" }}>
-            Logged in as: <strong>{user.username}</strong>
-          </p>
-        </div>
-      )}
 
       <button
         onClick={handleClaim}
@@ -202,8 +140,14 @@ export default function ClaimTest() {
           borderRadius: "5px",
         }}
       >
-        {isLoading ? "Processing..." : "Claim 0.01 Test-π"}
+        {isLoading ? 'Processing...' : 'Claim 0.01 Test-π'}
       </button>
+
+      {paymentResult && (
+        <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f0f0f0", borderRadius: "5px" }}>
+          <p style={{ margin: 0, fontSize: "14px", wordBreak: "break-word" }}>{paymentResult}</p>
+        </div>
+      )}
 
       <div style={{ marginTop: "20px" }}>
         <a href="/dashboard" style={{ color: "#666", textDecoration: "none" }}>
