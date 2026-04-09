@@ -14,6 +14,9 @@ export default function ClaimTest() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Call init immediately
+    init();
+
     function onIncompletePaymentFound(payment: unknown) {
       console.log("Incomplete payment:", payment);
     }
@@ -73,8 +76,6 @@ export default function ClaimTest() {
         start();
       }
     }
-
-    init();
   }, []);
 
   const handleClaim = async () => {
