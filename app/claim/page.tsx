@@ -14,22 +14,8 @@ export default function ClaimTest() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function init() {
-      console.log("Initializing Pi SDK...");
-
-      if (!window.Pi) {
-        const script = document.createElement("script");
-        script.src = "https://sdk.minepi.com/pi-sdk.js";
-
-        script.onload = () => {
-          console.log("Pi SDK loaded");
-          start();
-        };
-
-        document.body.appendChild(script);
-      } else {
-        start();
-      }
+    function onIncompletePaymentFound(payment: unknown) {
+      console.log("Incomplete payment:", payment);
     }
 
     async function start() {
@@ -70,8 +56,22 @@ export default function ClaimTest() {
       }
     }
 
-    function onIncompletePaymentFound(payment: unknown) {
-      console.log("Incomplete payment:", payment);
+    async function init() {
+      console.log("Initializing Pi SDK...");
+
+      if (!window.Pi) {
+        const script = document.createElement("script");
+        script.src = "https://sdk.minepi.com/pi-sdk.js";
+
+        script.onload = () => {
+          console.log("Pi SDK loaded");
+          start();
+        };
+
+        document.body.appendChild(script);
+      } else {
+        start();
+      }
     }
 
     init();
