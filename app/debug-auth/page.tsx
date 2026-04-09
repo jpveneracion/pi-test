@@ -3,11 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface PiUser {
+  username: string;
+  uid: string;
+}
+
 export default function DebugAuthPage() {
   const router = useRouter();
-  const [frontendUser, setFrontendUser] = useState<any>(null);
-  const [backendUser, setBackendUser] = useState<any>(null);
-  const [localStorageUser, setLocalStorageUser] = useState<any>(null);
+  const [frontendUser, setFrontendUser] = useState<PiUser | null>(null);
+  const [backendUser, setBackendUser] = useState<PiUser | null>(null);
+  const [localStorageUser, setLocalStorageUser] = useState<PiUser | null>(null);
 
   useEffect(() => {
     // Check localStorage

@@ -2,10 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 
+interface PiUser {
+  username: string;
+  uid: string;
+}
+
 export default function DashboardPage() {
   const [balance, setBalance] = useState<number>(0);
   const [totalDeposits, setTotalDeposits] = useState<number>(0);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<PiUser | null>(null);
 
   useEffect(() => {
     // Check what user data we have
@@ -126,9 +131,11 @@ export default function DashboardPage() {
             >
               💰 Deposit Funds
             </a>
+            <a href="/claim">
             <button className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
-              View Activity
+              Claim
             </button>
+            </a>
             <button className="bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-6 rounded-lg transition-colors">
               Create Payment
             </button>
