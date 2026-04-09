@@ -72,7 +72,7 @@ export default function ClaimTest() {
     console.log("Starting claim...");
 
     const paymentData = {
-      amount: 0.01,
+      amount: "0.01",
       memo: "Claim Salary Test",
       metadata: { type: "claim_test" },
     };
