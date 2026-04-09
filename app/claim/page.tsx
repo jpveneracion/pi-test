@@ -8,12 +8,23 @@ export default function ClaimTest() {
   const [status, setStatus] = useState("Waiting for Pi SDK...");
 
   useEffect(() => {
-    // Wait for Pi SDK to be available (like test-payment page)
+    // Wait for Pi SDK to be available
     const waitForPi = setInterval(() => {
       if (typeof window !== "undefined" && window.Pi) {
-        setIsPiReady(true);
-        setStatus("Pi SDK ready - You can now claim!");
         clearInterval(waitForPi);
+        setStatus("Initializing Pi SDK...");
+
+        // Initialize the Pi SDK
+        window.Pi.init({
+          version: "2.0",
+          sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
+        });
+
+        // Give it a moment to initialize
+        setTimeout(() => {
+          setIsPiReady(true);
+          setStatus("Pi SDK ready - You can now claim!");
+        }, 500);
       }
     }, 100);
 
