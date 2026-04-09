@@ -23,7 +23,6 @@ export default function ClaimTest() {
         // Initialize the Pi SDK
         window.Pi.init({
           version: "2.0",
-          sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX !== "false",
         });
 
         // Give it a moment to initialize, then authenticate
