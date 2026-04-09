@@ -9,22 +9,28 @@ interface PiUser {
 
 export default function ClaimTest() {
   const [user, setUser] = useState<PiUser | null>(null);
-  const [ready, setReady] = useState(false);
-  const [status, setStatus] = useState("Initializing Pi SDK...");
+  const [isPiReady, setIsPiReady] = useState(false);
+  const [status, setStatus] = useState("Waiting for Pi SDK...");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Call init immediately
-    init();
+    // Wait for Pi SDK to be available (like test-payment page)
+    const waitForPi = setInterval(() => {
+      if (typeof window !== "undefined" && window.Pi) {
+        setIsPiReady(true);
+        setStatus("Pi SDK ready - Authenticating...");
+        clearInterval(waitForPi);
 
-    function onIncompletePaymentFound(payment: unknown) {
-      console.log("Incomplete payment:", payment);
-    }
+        // Now authenticate
+        authenticate();
+      }
+    }, 100);
 
-    async function start() {
-      const Pi = window.Pi;
+    return () => clearInterval(waitForPi);
 
-      if (!Pi) {
+    // Define authenticate function inside useEffect to avoid dependency issues
+    async function authenticate() {
+      if (!window.Pi) {
         const errorMsg = "Pi SDK not available. Please open in Pi Network app.";
         console.error(errorMsg);
         setError(errorMsg);
@@ -32,47 +38,24 @@ export default function ClaimTest() {
         return;
       }
 
-      setStatus("Initializing SDK...");
-
-      Pi.init({
-        version: "2.0"
-      });
-
-      setStatus("Authenticating...");
-
       try {
-        const auth = await Pi.authenticate(
+        setStatus("Authenticating...");
+
+        const auth = await window.Pi.authenticate(
           ["username", "payments"],
-          onIncompletePaymentFound
+          (payment: unknown) => {
+            console.log("Incomplete payment found:", payment);
+          }
         );
 
         console.log("Authenticated:", auth.user);
         setUser(auth.user);
-        setReady(true);
         setStatus("Ready");
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
         console.error("Auth error:", err);
         setError(`Authentication failed: ${errorMessage}`);
         setStatus(`Authentication failed: ${errorMessage}`);
-      }
-    }
-
-    async function init() {
-      console.log("Initializing Pi SDK...");
-
-      if (!window.Pi) {
-        const script = document.createElement("script");
-        script.src = "https://sdk.minepi.com/pi-sdk.js";
-
-        script.onload = () => {
-          console.log("Pi SDK loaded");
-          start();
-        };
-
-        document.body.appendChild(script);
-      } else {
-        start();
       }
     }
   }, []);
@@ -147,12 +130,12 @@ export default function ClaimTest() {
 
           <button
             onClick={handleClaim}
-            disabled={!ready}
+            disabled={!isPiReady}
             style={{
               padding: "12px 20px",
               fontSize: "16px",
-              cursor: ready ? "pointer" : "not-allowed",
-              backgroundColor: ready ? "#7b2cbf" : "#ccc",
+              cursor: isPiReady ? "pointer" : "not-allowed",
+              backgroundColor: isPiReady ? "#7b2cbf" : "#ccc",
               color: "white",
               border: "none",
               borderRadius: "5px",
